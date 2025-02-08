@@ -9,8 +9,21 @@ module RedmineAutoLinkRelate
       issue = journal.journalized
       return unless issue.is_a?(Issue)
 
-      related_issue_ids = extract_issue_ids(journal.notes)
-      related_issue_ids.each do |related_issue_id|
+      related_issue_ids = []
+
+      # 1. Extract issue IDs from comments (notes)
+      if journal.notes.present?
+        related_issue_ids += extract_issue_ids(journal.notes)
+      end
+
+      # 2. Check if the issue description has been changed
+      if journal.details.any? { |d| d.prop_key == 'description' }
+        Rails.logger.info("Description changed for issue ##{issue.id}, checking for related issues.")
+        related_issue_ids += extract_issue_ids(issue.description) if issue.description.present?
+      end
+
+      # Process extracted issue IDs and establish relations
+      related_issue_ids.uniq.each do |related_issue_id|
         related_issue = Issue.find_by_id(related_issue_id)
         next unless related_issue
 
@@ -20,19 +33,19 @@ module RedmineAutoLinkRelate
           next
         end
 
-        # Skip if the relation would create a circular reference
+        # Skip if the relation would create a circular dependency
         if circular_relation?(issue, related_issue)
           Rails.logger.info("Skipped circular relation: ##{issue.id} -> ##{related_issue.id}")
           next
         end
 
-        # Skip if the issue already has other specific relationships
+        # Skip if the issue already has a different type of relationship
         if has_existing_relationship?(issue, related_issue)
           Rails.logger.info("Skipped due to existing relationship: ##{issue.id} -> ##{related_issue.id}")
           next
         end
 
-        # Attempt to create the relation and handle exceptions
+        # Create the relation and handle any errors
         begin
           IssueRelation.create!(issue_from: issue, issue_to: related_issue, relation_type: 'relates')
           Rails.logger.info("Related issue ##{issue.id} to issue ##{related_issue.id}")
@@ -44,12 +57,14 @@ module RedmineAutoLinkRelate
 
     private
 
-    def extract_issue_ids(notes)
-      return [] if notes.blank?
+    # Extracts issue IDs from text (supports #123 and ##123)
+    def extract_issue_ids(text)
+      return [] if text.blank?
 
-      notes.scan(/#(\d+)/).flatten.map(&:to_i)
+      text.scan(/##?(\d+)/).flatten.map(&:to_i) # Matches both #123 and ##123
     end
 
+    # Checks for circular dependencies between issues
     def circular_relation?(issue, related_issue)
       visited = Set.new
       queue = [related_issue]
@@ -69,6 +84,7 @@ module RedmineAutoLinkRelate
       false
     end
 
+    # Checks if a different type of relationship already exists between issues
     def has_existing_relationship?(issue, related_issue)
       # Check for parent-child relationship
       return true if issue.parent_id == related_issue.id || related_issue.parent_id == issue.id
