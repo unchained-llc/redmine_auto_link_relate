@@ -61,7 +61,8 @@ module RedmineAutoLinkRelate
     def extract_issue_ids(text)
       return [] if text.blank?
 
-      text.scan(/##?(\d+)/).flatten.map(&:to_i) # Matches both #123 and ##123
+      sanitized = text.gsub(/<pre(?:\s[^>]*)?>.*?<\/pre>/m, '')
+      sanitized.scan(/##?(\d+)/).flatten.map(&:to_i) # Matches both #123 and ##123
     end
 
     # Checks for circular dependencies between issues

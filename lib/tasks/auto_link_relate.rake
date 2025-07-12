@@ -87,7 +87,8 @@ namespace :redmine_auto_link_relate do
   def extract_issue_ids(text)
     return [] if text.blank?
 
-    text.scan(/##?(\d+)/).flatten.map(&:to_i)
+    sanitized = text.gsub(/<pre(?:\s[^>]*)?>.*?<\/pre>/m, '')
+    sanitized.scan(/##?(\d+)/).flatten.map(&:to_i) # Matches both #123 and ##123
   end
 
   # Check if the relation would create a circular dependency
