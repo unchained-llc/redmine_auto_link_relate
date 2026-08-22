@@ -83,7 +83,7 @@ namespace :redmine_auto_link_relate do
     puts 'All issues and comments have been processed.'
   end
 
-  # Extract issue IDs from text matching either #123 or ##123 formats
+  # Extracts issue IDs from standalone #123 references.
   def extract_issue_ids(text)
     return [] if text.blank?
 
@@ -92,7 +92,7 @@ namespace :redmine_auto_link_relate do
     sanitized.gsub!(/```.*?```/m, '')
     sanitized.gsub!(/~~~.*?~~~/m, '')
 
-    sanitized.scan(/##?(\d+)/).flatten.map(&:to_i) # Matches both #123 and ##123
+    sanitized.scan(/(?<![\w\/#])#(\d+)\b/).flatten.map(&:to_i)
   end
 
   # Check if the relation would create a circular dependency
