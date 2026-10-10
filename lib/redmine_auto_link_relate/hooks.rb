@@ -2,6 +2,13 @@
 
 module RedmineAutoLinkRelate
   class Hooks < Redmine::Hook::Listener
+    def controller_issues_new_after_save(context = {})
+      issue = context[:issue]
+      return unless issue.is_a?(Issue)
+
+      relate_issues(issue, extract_issue_ids(issue.description))
+    end
+
     def controller_issues_edit_after_save(context = {})
       journal = context[:journal]
       return unless journal
@@ -22,7 +29,13 @@ module RedmineAutoLinkRelate
         related_issue_ids += extract_issue_ids(issue.description) if issue.description.present?
       end
 
-      # Process extracted issue IDs and establish relations
+      relate_issues(issue, related_issue_ids)
+    end
+
+    private
+
+    # Process extracted issue IDs and establish relations
+    def relate_issues(issue, related_issue_ids)
       related_issue_ids.uniq.each do |related_issue_id|
         related_issue = Issue.find_by_id(related_issue_id)
         next unless related_issue
@@ -54,8 +67,6 @@ module RedmineAutoLinkRelate
         end
       end
     end
-
-    private
 
     # Extracts issue IDs from standalone #123 references.
     def extract_issue_ids(text)

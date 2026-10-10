@@ -1,6 +1,6 @@
 # Auto Link Related Issues Plugin
 
-This plugin automatically links related issues in Redmine when internal issue links (e.g., `#123`) are mentioned in comments.
+This plugin automatically links related issues in Redmine when internal issue links (e.g., `#123`) are mentioned in issue descriptions or comments.
 
 ## Installation
 
@@ -21,7 +21,7 @@ This plugin automatically links related issues in Redmine when internal issue li
 ## Usage
 
 ### Automatic Linking
-When a user adds a comment containing an internal issue link (e.g., `#123`), this plugin automatically creates a relation between the current issue and the linked issue.
+When a user creates an issue with an internal issue link (e.g., `#123`) in its description, this plugin automatically creates a relation between the new issue and the linked issue. The same processing runs when an existing issue's description is changed or a comment containing an internal issue link is added.
 
 ### Bulk Processing of Existing Comments
 You can use the provided Rake task to scan all existing comments and link issues retroactively.
